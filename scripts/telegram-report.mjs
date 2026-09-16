@@ -36,28 +36,27 @@ function getTestStatus(test) {
 }
 
 function collectTests(suites = []) {
-  for (const suite of suites) {
-    for (const test of suite.tests ?? []) {
-      stats.total += 1;
-
-      const status = getTestStatus(test);
-
-      if (status === "passed") {
-        stats.passed += 1;
-      } else {
-        stats.failed += 1;
-        stats.failedTests.push({
-          file: test.location?.file ?? "Неизвестный файл",
-          title: [...(test.titlePath ?? []), test.title]
-            .filter(Boolean)
-            .join(" › "),
-        });
+    for (const suite of suites) {
+      for (const spec of suite.specs ?? []) {
+        for (const test of spec.tests ?? []) {
+          stats.total += 1;
+          const status = getTestStatus(test);
+  
+          if (status === "passed") {
+            stats.passed += 1;
+          } else {
+            stats.failed += 1;
+            stats.failedTests.push({
+              file: spec.file ?? "Неизвестный файл",
+              title: spec.title ?? "Неизвестный тест",
+            });
+          }
+        }
       }
+  
+      collectTests(suite.suites ?? []);
     }
-
-    collectTests(suite.suites ?? []);
   }
-}
 
 collectTests(report.suites ?? []);
 
