@@ -28,4 +28,17 @@ jobs:
         run: npm run lint
 
       - name: Playwright tests
+        id: playwright
+        continue-on-error: true
         run: npm test
+
+      - name: Send Telegram report
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/telegram-report.mjs
+
+      - name: Fail CI if Playwright tests failed
+        if: steps.playwright.outcome == 'failure'
+        run: exit 1
