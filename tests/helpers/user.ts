@@ -71,6 +71,7 @@ export function makeSearchData() {
     skill: `HW13-search-${runId}`,
     slotDate: getTomorrowDate(),
     host: makeUser("host", runId),
+    guest: makeUser("guest", runId),
   };
 }
 

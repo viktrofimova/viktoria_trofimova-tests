@@ -9,7 +9,7 @@ export async function prepareSearchFlow(
   browser: Browser,
   contexts: BrowserContext[],
 ) {
-  const { skill, slotDate, host } = makeSearchData();
+  const { skill, slotDate, host, guest } = makeSearchData();
 
   const hostContext = await browser.newContext();
   contexts.push(hostContext);
@@ -18,6 +18,7 @@ export async function prepareSearchFlow(
   contexts.push(guestContext);
 
   await registerUserViaApi(hostContext.request, host);
+  await registerUserViaApi(guestContext.request, guest);
 
   const hostPage = await hostContext.newPage();
   const guestPage = await guestContext.newPage();

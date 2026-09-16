@@ -2,17 +2,26 @@ import { test, expect, type BrowserContext } from "@playwright/test";
 import { deleteUserViaApi } from "../helpers/user";
 import { prepareSearchFlow } from "../helpers/search-flow";
 
-test.describe("Поиск пользователя в каталоге", () => {
-  let contexts: BrowserContext[] = [];
+let contexts: BrowserContext[] = [];
 
-  test.afterEach(async () => {
-    await deleteUserViaApi(contexts[0].request);
-  
-    await contexts[0].close();
-    await contexts[1].close();
-  
+test.describe("Поиск пользователя в каталоге", () => {
+test.afterEach(async () => {
+  try {
+    if (contexts[0]) {
+      await deleteUserViaApi(contexts[0].request).catch(() => undefined);
+    }
+
+    if (contexts[1]) {
+      await deleteUserViaApi(contexts[1].request).catch(() => undefined);
+    }
+  } finally {
+    for (const context of contexts) {
+      await context.close().catch(() => undefined);
+    }
+
     contexts = [];
-  });
+  }
+});
 
   test("Гость находит пользователя в каталоге по уникальному навыку", async ({
     browser,
