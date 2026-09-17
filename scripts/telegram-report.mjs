@@ -36,59 +36,48 @@ function getTestStatus(test) {
 }
 
 function collectTests(suites = []) {
-    for (const suite of suites) {
-      for (const spec of suite.specs ?? []) {
-        for (const test of spec.tests ?? []) {
-          stats.total += 1;
-          const status = getTestStatus(test);
-  
-          if (status === "passed") {
-            stats.passed += 1;
-          } else {
-            stats.failed += 1;
-            stats.failedTests.push({
-              file: spec.file ?? "Неизвестный файл",
-              title: spec.title ?? "Неизвестный тест",
-            });
-          }
+  for (const suite of suites) {
+    for (const spec of suite.specs ?? []) {
+      for (const test of spec.tests ?? []) {
+        stats.total += 1;
+
+        const status = getTestStatus(test);
+
+        if (status === "passed") {
+          stats.passed += 1;
+        } else {
+          stats.failed += 1;
+          stats.failedTests.push({
+            file: spec.file ?? "Неизвестный файл",
+            title: spec.title ?? "Неизвестный тест",
+          });
         }
       }
-  
-      collectTests(suite.suites ?? []);
     }
+
+    collectTests(suite.suites ?? []);
   }
+}
 
 collectTests(report.suites ?? []);
 
-const status = stats.failed > 0 ? "❌ FAILED" : "✅ PASSED";
-
-const failedTestsText = stats.failedTests.length
-  ? stats.failedTests
-      .map((test) => `• ${test.file}\n  ${test.title}`)
-      .join("\n\n")
-  : "нет";
-
-const branch =
-  process.env.GITHUB_HEAD_REF ||
-  process.env.GITHUB_REF_NAME ||
-  "unknown";
-
-const commit = (process.env.GITHUB_SHA || "unknown").slice(0, 7);
+const serverUrl = process.env.GITHUB_SERVER_URL || "https://github.com";
+const repository = process.env.GITHUB_REPOSITORY || "unknown";
+const repositoryUrl = `${serverUrl}/${repository}`;
+const actionsUrl = `${repositoryUrl}/actions/runs/${process.env.GITHUB_RUN_ID || ""}`;
+const commitUrl = `${repositoryUrl}/commit/${process.env.GITHUB_SHA || ""}`;
+const runBy = process.env.GITHUB_ACTOR || "unknown";
 
 const message = [
-  "🧪 PomidorQA CI",
+  `Всего пройдено: ${stats.total}`,
   "",
-  `Статус: ${status}`,
-  "",
-  `Всего: ${stats.total}`,
   `✅ Passed: ${stats.passed}`,
   `❌ Failed: ${stats.failed}`,
   "",
-  "Упавшие тесты:",
-  failedTestsText,
-  "",
-  `Branch: ${branch}`,
-  `Commit: ${commit}`,
+  `Репозиторий: ${repositoryUrl}`,
+  `Запуск: ${runBy}`,
+  `Actions на GitHub: ${actionsUrl}`,
+  `Коммит: ${commitUrl}`,
 ].join("\n");
 
 console.log(message);
@@ -116,6 +105,7 @@ const response = await fetch(
 
 if (!response.ok) {
   const errorText = await response.text();
+
   throw new Error(
     `Telegram API вернул ошибку ${response.status}: ${errorText}`,
   );
