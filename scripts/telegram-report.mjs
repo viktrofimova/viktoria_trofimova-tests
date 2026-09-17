@@ -74,10 +74,10 @@ const message = [
   `✅ Passed: ${stats.passed}`,
   `❌ Failed: ${stats.failed}`,
   "",
-  `Репозиторий: ${repositoryUrl}`,
+  `<a href="${repositoryUrl}">Репозиторий</a>`,
   `Запуск: ${runBy}`,
-  `Actions на GitHub: ${actionsUrl}`,
-  `Коммит: ${commitUrl}`,
+  `<a href="${actionsUrl}">Actions на GitHub</a>`,
+  `<a href="${commitUrl}">Коммит</a>`,
 ].join("\n");
 
 console.log(message);
@@ -99,6 +99,7 @@ const response = await fetch(
     body: JSON.stringify({
       chat_id: chatId,
       text: message,
+      parse_mode: "HTML",
     }),
   },
 );
