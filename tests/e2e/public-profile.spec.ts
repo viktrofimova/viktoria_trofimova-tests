@@ -1,100 +1,75 @@
 import { test, expect, type BrowserContext } from "@playwright/test";
 import { deleteUserViaApi } from "../helpers/user";
-import { preparePublicProfile } from "../helpers/public-profile";
+import { preparePublicProfileFlow } from "../helpers/public-profile-flow";
 
-let accountContexts: BrowserContext[] = [];
+let contexts: BrowserContext[] = [];
 
-test.describe("Публичный профиль", () => {
-  test.afterEach(async () => {
-    for (const context of accountContexts) {
-      await deleteUserViaApi(context.request).catch(() => undefined);
-      await context.close();
-    }
-    accountContexts = [];
+test.afterEach(async () => {
+  for (const context of contexts) {
+    await deleteUserViaApi(context.request).catch(() => undefined);
+    await context.close().catch(() => undefined);
+  }
+  contexts = [];
+});
+
+test("Публичный профиль показывает имя, описание, оба типа навыков и свободный слот", async ({ browser }) => {
+  test.setTimeout(60_000);
+
+  const flow = await preparePublicProfileFlow(browser, contexts);
+
+  await test.step("Хост открывает профиль", async () => {
+    await flow.profilePage.goto();
   });
-
-  test("Другой участник видит публичный профиль специалиста", async ({ browser }) => {
-    const { host, skillTag, telegram, bio, slotDate, hostPage, hostProfile, hostBooking, guestBooking, personPage } =
-      await preparePublicProfile(browser, accountContexts);
-
-    await test.step("Специалист открывает свой профиль", async () => {
-      await hostProfile.goto();
-    });
-
-    await test.step("Проверяем, что открылась страница профиля", async () => {
-      await expect(hostProfile.saveButton()).toBeVisible();
-    });
-
-    await test.step("Специалист добавляет навык «могу помочь»", async () => {
-      await hostProfile.addSkill(skillTag, "can_help");
-    });
-
-    await test.step("Проверяем, что навык появился в профиле специалиста", async () => {
-      await expect(hostProfile.canHelpSkills()).toContainText(skillTag);
-    });
-
-    await test.step("Специалист заполняет Telegram", async () => {
-      await hostProfile.telegramInput().fill(telegram);
-    });
-
-    await test.step("Проверяем, что Telegram введён", async () => {
-      await expect(hostProfile.telegramInput()).toHaveValue(telegram);
-    });
-
-    await test.step("Специалист заполняет поле «О себе»", async () => {
-      await hostProfile.bioInput().fill(bio);
-    });
-
-    await test.step("Проверяем, что описание введено", async () => {
-      await expect(hostProfile.bioInput()).toHaveValue(bio);
-    });
-
-    await test.step("Специалист сохраняет профиль", async () => {
-      await hostProfile.save();
-    });
-
-    await test.step("Специалист открывает страницу слотов", async () => {
-      await hostPage.goto("/pomidorqa/profile/slots");
-    });
-
-    await test.step("Проверяем, что открылась страница слотов", async () => {
-      await expect(hostBooking.slotDateInput()).toBeVisible();
-    });
-
-    await test.step("Специалист добавляет свободный слот на завтра", async () => {
-      await hostBooking.addSlot(slotDate, "15:00");
-    });
-
-    await test.step("Проверяем, что свободный слот появился", async () => {
-      await expect(hostBooking.freeSlot()).toBeVisible();
-    });
-
-    await test.step("Другой участник ищет специалиста по навыку", async () => {
-      await guestBooking.searchBySkill(skillTag);
-    });
-
-    await test.step("Проверяем, что специалист найден в каталоге", async () => {
-      await expect(guestBooking.catalogCard(host.name)).toBeVisible();
-    });
-
-    await test.step("Другой участник открывает профиль специалиста", async () => {
-      await guestBooking.openHostCard(host.name);
-    });
-
-    await test.step("Проверяем, что открылась публичная страница специалиста", async () => {
-      await expect(personPage.name()).toHaveText(host.name);
-    });
-
-    await test.step("Проверяем, что Telegram виден другому участнику", async () => {
-      await expect(personPage.content()).toContainText(telegram);
-    });
-
-    await test.step("Проверяем, что описание «О себе» видно другому участнику", async () => {
-      await expect(personPage.content()).toContainText(bio);
-    });
-
-    await test.step("Проверяем, что навык «могу помочь» виден другому участнику", async () => {
-      await expect(personPage.canHelpSection()).toContainText(skillTag);
-    });
+  await test.step("Хост добавляет навык «могу помочь»", async () => {
+    await flow.profilePage.addSkill(flow.skill, "can_help");
+  });
+  await test.step("Проверяем, что навык «могу помочь» появился", async () => {
+    await expect(flow.profilePage.canHelpSkills()).toContainText(flow.skill);
+  });
+  await test.step("Хост добавляет навык «хочу разобрать»", async () => {
+    await flow.profilePage.addSkill(flow.wantToLearnSkill, "want_to_learn");
+  });
+  await test.step("Проверяем, что навык «хочу разобрать» появился", async () => {
+    await expect(flow.profilePage.skillElement(flow.wantToLearnSkill)).toBeVisible();
+  });
+  await test.step("Хост заполняет имя и описание профиля и сохраняет", async () => {
+    await flow.profilePage.fillNameTelegramBioAndSave(flow.host.name, "", flow.bio);
+  });
+  await test.step("Хост добавляет свободный слот на завтра", async () => {
+    await flow.hostPage.goto("/pomidorqa/profile/slots");
+    await flow.hostBooking.addSlot(flow.slotDate, flow.slotTime);
+  });
+  await test.step("Хост проверяет, что свободный слот появился", async () => {
+    await expect(flow.hostBooking.slotCardByTime(flow.slotTime)).toBeVisible();
+  });
+  await test.step("Гость открывает каталог", async () => {
+    await flow.guestPage.goto("/pomidorqa/");
+  });
+  await test.step("Гость ищет хоста по навыку", async () => {
+    await flow.guestBooking.searchBySkill(flow.skill);
+  });
+  await test.step("Проверяем, что хост найден в каталоге", async () => {
+    await expect(flow.guestBooking.catalogCard(flow.host.name)).toBeVisible();
+  });
+  await test.step("Гость открывает карточку хоста", async () => {
+    await flow.guestBooking.openHostCard(flow.host.name);
+  });
+  await test.step("Проверяем имя на публичном профиле", async () => {
+    await expect(flow.personPage.personName()).toHaveText(flow.host.name);
+  });
+  await test.step("Проверяем описание профиля", async () => {
+    await expect(flow.personPage.aboutMe(flow.bio)).toBeVisible();
+  });
+  await test.step("Проверяем навык «могу помочь» на публичном профиле", async () => {
+    await expect(flow.personPage.canHelpSection()).toContainText(flow.skill);
+  });
+  await test.step("Проверяем навык «хочу разобрать» на публичном профиле", async () => {
+    await expect(flow.personPage.wantToLearnSection()).toContainText(flow.wantToLearnSkill);
+  });
+  await test.step("Проверяем свободный слот на завтра", async () => {
+    await expect(flow.guestBooking.bookingDay(flow.slotDate)).toBeVisible();
+  });
+  await test.step("Проверяем время свободного слота", async () => {
+    await expect(flow.guestBooking.calendarTime().first()).toHaveText(flow.slotTime);
   });
 });

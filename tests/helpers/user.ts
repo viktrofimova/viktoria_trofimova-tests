@@ -129,3 +129,12 @@ export function getYesterdayDate(): string {
   const day = String(yesterday.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+export function makePublicProfileData() {
+  const runId = Date.now();
+
+  return {
+    wantToLearnSkill: `PublicLearn-${runId}`,
+    bio: `Описание профиля ${runId}`,
+  };
+}

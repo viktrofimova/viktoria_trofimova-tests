@@ -2,150 +2,84 @@ import { type Page } from "@playwright/test";
 
 export class BookingPage {
   constructor(private readonly page: Page) {}
-
-  catalogFilterInput = () =>
-    this.page.locator("#pomidorqa-catalog-skill-filter");
-
-  catalogFilterSubmit = () =>
-    this.page.getByRole("button", { name: "Найти" });
-
-  catalogCard = (name: string) =>
-    this.page
-      .locator('[data-testid="person-card"]')
-      .filter({ hasText: name });
-
-  personName = () =>
-    this.page.getByRole("heading", { level: 1 });
-
-  slotDateInput = () =>
-    this.page.locator('input[type="date"]');
-
-  slotTimeInput = () =>
-    this.page.locator('input[type="time"]');
-
-  slotAddSubmit = () =>
-    this.page.getByRole("button", { name: "Добавить слот" });
-
-  slotCard = () =>
-    this.page.locator('[data-slot-status="free"]').first();
-
+  catalogFilterInput = () => this.page.locator("#pomidorqa-catalog-skill-filter");
+  catalogFilterSubmit = () => this.page.getByRole("button", { name: "Найти" });
+  catalogCard = (name: string) => this.page.locator('[data-testid="person-card"]').filter({ hasText: name });
+  personName = () => this.page.getByRole("heading", { level: 1 });
+  slotDateInput = () => this.page.locator('input[type="date"]');
+  slotTimeInput = () => this.page.locator('input[type="time"]');
+  slotAddSubmit = () => this.page.getByRole("button", { name: "Добавить слот" });
+  slotCard = () => this.page.locator('[data-slot-status="free"]').first();
   freeSlot = () => this.slotCard();
-
-  slotCardByTime = (time: string) =>
-    this.page.locator("[data-slot-id]").filter({ hasText: time });
-  
-  slotDeleteButton = (time: string) =>
-    this.slotCardByTime(time).getByRole("button", { name: "Удалить" });
-
-  bookingDay = (date: string) =>
-    this.page.locator(`button[data-date="${date}"]`);
-
-  anyTime = () =>
-    this.page.locator("button[data-slot-id]").first();
-
-  bookingDialog = () =>
-    this.page.getByRole("dialog");
-
-  bookingConfirmButton = () =>
-    this.page.getByRole("button", { name: "Подтвердить" });
-
-  bookingSuccess = () =>
-    this.bookingDialog().getByText(/Забронировано|успешно/i);
-
-  bookingError = () =>
-    this.bookingDialog().getByText(
-      /забронировали|занят|выбери другой/i,
-    );
-
-  bookingGuestError = () =>
-    this.bookingDialog().getByRole("alert");
-
-  upcomingSection = () =>
-    this.page.locator('[data-testid="upcoming-meetings"]');
-
-  upcomingBookingCard = (name: string) =>
-    this.upcomingSection()
-      .locator("[data-booking-id]")
-      .filter({ hasText: name });
-
-  upcomingCardName = (name: string) =>
-    this.upcomingBookingCard(name)
-      .getByRole("paragraph")
-      .first();
-
-  cancelBookingButton = (name: string) =>
-    this.upcomingBookingCard(name).getByRole("button", {
-      name: "Отменить",
-    });
-
-  pastBookingsSection = () =>
-    this.page
-      .locator("section")
-      .filter({ hasText: "Прошедшие и отменённые" });
-
-  pastBookingCard = (name: string) =>
-    this.pastBookingsSection()
-      .locator("[data-booking-id]")
-      .filter({ hasText: name });
+  slotCardByTime = (time: string) => this.page.locator("[data-slot-id]").filter({ hasText: time });
+  slotDeleteButton = (time: string) => this.slotCardByTime(time).getByRole("button", { name: "Удалить" });
+  bookingDay = (date: string) => this.page.locator(`button[data-date="${date}"]`);
+  anyTime = () => this.page.locator("button[data-slot-id]").first();
+  calendarTime = () => this.page.getByRole("group", { name: "Время слотов" }).getByRole("button");
+  calendarTimezoneHint = () => this.page.getByTestId("slots-timezone");
+  bookingDialog = () => this.page.getByRole("dialog");
+  bookingConfirmButton = () => this.page.getByRole("button", { name: "Подтвердить" });
+  bookingCancelButton = () => this.bookingDialog().getByRole("button", { name: "Отмена" });
+  bookingSuccess = () => this.bookingDialog().getByText(/Забронировано|успешно/i);
+  bookingError = () => this.bookingDialog().getByText(/забронировали|занят|выбери другой/i);
+  bookingGuestError = () => this.bookingDialog().getByRole("alert");
+  upcomingSection = () => this.page.locator('[data-testid="upcoming-meetings"]');
+  upcomingBookingCard = (name: string) => this.upcomingSection().locator("[data-booking-id]").filter({ hasText: name });
+  upcomingCardName = (name: string) => this.upcomingBookingCard(name).getByRole("paragraph").first();
+  cancelBookingButton = (name: string) => this.upcomingBookingCard(name).getByRole("button", { name: "Отменить" });
+  pastBookingsSection = () => this.page.locator("section").filter({ hasText: "Прошедшие и отменённые" });
+  pastBookingCard = (name: string) => this.pastBookingsSection().locator("[data-booking-id]").filter({ hasText: name });
+  cancelPastBookingButton = (name: string) => this.pastBookingCard(name).getByRole("button", { name: "Отменить" });
+  cancelError = () => this.page.getByTestId("cancel-error");
 
   async addSlot(date: string, time: string) {
     await this.slotDateInput().fill(date);
     await this.slotTimeInput().fill(time);
     await this.slotAddSubmit().click();
   }
-
   async deleteSlot(time: string) {
     await this.slotDeleteButton(time).click();
     await this.slotCardByTime(time).waitFor({ state: "hidden" });
-  } 
-
+  }
   async searchBySkill(skillTag: string) {
     await this.catalogFilterInput().fill(skillTag);
     await this.catalogFilterSubmit().click();
   }
-
   async openHostCard(hostName: string) {
     await this.catalogCard(hostName).click();
   }
-
   async selectDayAndTime(slotDate: string) {
     const dayButton = this.bookingDay(slotDate);
     const timeButton = this.anyTime();
     const deadline = Date.now() + 15_000;
-
     for (;;) {
       try {
         await dayButton.click({ timeout: 5_000 });
         await timeButton.click({ timeout: 5_000 });
-        await this.bookingDialog().waitFor({
-          state: "visible",
-          timeout: 3_000,
-        });
+        await this.bookingDialog().waitFor({ state: "visible", timeout: 3_000 });
         return;
       } catch (error) {
-        if (Date.now() > deadline) {
-          throw error;
-        }
+        if (Date.now() > deadline) throw error;
       }
     }
   }
-
   async confirmBooking() {
     await this.bookingConfirmButton().click();
   }
-
+  async dismissBooking() {
+    await this.bookingCancelButton().click();
+  }
+  async submitCancel(name: string) {
+    const responded = this.page.waitForResponse((response) => response.url().endsWith("/pomidorqa/bookings") && response.request().method() === "POST");
+    await this.cancelBookingButton(name).click();
+    await responded;
+  }
   async cancelBooking(name: string) {
-    const cancelled = this.page.waitForResponse(
-      (response) =>
-        response.url().endsWith("/pomidorqa/bookings") &&
-        response.request().method() === "POST",
-    );
-  
+    const cancelled = this.page.waitForResponse((response) => response.url().endsWith("/pomidorqa/bookings") && response.request().method() === "POST");
     await this.cancelBookingButton(name).click();
     await cancelled;
     await this.upcomingBookingCard(name).waitFor({ state: "hidden" });
   }
-
   async goToBookings() {
     await this.page.goto("/pomidorqa/bookings");
   }

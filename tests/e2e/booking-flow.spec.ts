@@ -13,26 +13,10 @@ test.afterEach(async () => {
   contexts = [];
 });
 
-test("Основной путь + гонка за слот: регистрация → навык → слот → поиск в каталоге → бронирование → «Мои встречи» у обоих → второй гость видит ошибку", async ({ browser }) => {
+test("Основной путь бронирования: регистрация → навык → слот → поиск в каталоге → бронирование → слот занят → хост исчезает из каталога → «Мои встречи» у обоих → второй гость видит ошибку", async ({ browser }) => {
   test.setTimeout(60_000);
 
-  const {
-    skillTag,
-    host,
-    guest,
-    guest2,
-    hostContext,
-    guestContext,
-    guest2Context,
-    hostPage,
-    guestPage,
-    guest2Page,
-    hostProfile,
-    hostBooking,
-    guestBooking,
-    guest2Booking,
-    slotDate,
-  } = await prepareBookingFlow(browser, contexts);
+  const { skillTag, host, guest, guest2, hostPage, guestPage, hostProfile, hostBooking, guestBooking, guest2Booking, slotDate } = await prepareBookingFlow(browser, contexts);
 
   await test.step("Хост: добавляет навык «могу помочь»", async () => {
     await hostPage.goto("/pomidorqa/profile");
@@ -45,7 +29,6 @@ test("Основной путь + гонка за слот: регистраци
 
   await test.step("Хост: добавляет свободный слот на завтра", async () => {
     const slotTime = "12:00";
-
     await hostPage.goto("/pomidorqa/profile/slots");
     await hostBooking.addSlot(slotDate, slotTime);
   });
@@ -75,6 +58,42 @@ test("Основной путь + гонка за слот: регистраци
   });
 
   await test.step("Гость: проверяет, что открылось окно подтверждения", async () => {
+    await expect(guestBooking.bookingDialog()).toBeVisible();
+  });
+
+  await test.step("Гость: закрывает окно подтверждения", async () => {
+    await guestBooking.dismissBooking();
+  });
+
+  await test.step("Гость: проверяет, что окно подтверждения закрылось", async () => {
+    await expect(guestBooking.bookingDialog()).toBeHidden();
+  });
+
+  await test.step("Гость: открывает «Мои встречи»", async () => {
+    await guestBooking.goToBookings();
+  });
+
+  await test.step("Гость: проверяет, что встреча не создана", async () => {
+    await expect(guestBooking.upcomingBookingCard(host.name)).toHaveCount(0);
+  });
+
+  await test.step("Хост: обновляет страницу со слотами", async () => {
+    await hostPage.reload();
+  });
+
+  await test.step("Хост: проверяет, что слот остался свободным", async () => {
+    await expect(hostBooking.slotCardByTime("12:00")).toHaveAttribute("data-slot-status", "free");
+  });
+
+  await test.step("Гость: возвращается к карточке хоста", async () => {
+    await guestPage.goBack();
+  });
+
+  await test.step("Гость: снова выбирает день и время", async () => {
+    await guestBooking.selectDayAndTime(slotDate);
+  });
+
+  await test.step("Гость: проверяет, что снова открылось окно подтверждения", async () => {
     await expect(guestBooking.bookingDialog()).toBeVisible();
   });
 
@@ -110,6 +129,15 @@ test("Основной путь + гонка за слот: регистраци
     await expect(guestBooking.bookingSuccess()).toBeVisible({ timeout: 15_000 });
   });
 
+  await test.step("Гость открывает каталог", async () => {
+    await guestPage.goto("/pomidorqa/");
+  });
+
+  await test.step("Проверяем, что хост без свободных слотов не отображается в каталоге", async () => {
+    await guestBooking.searchBySkill(skillTag);
+    await expect(guestBooking.catalogCard(host.name)).toHaveCount(0);
+  });
+
   await test.step("Гость2: пытается забронировать тот же слот вторым", async () => {
     await guest2Booking.confirmBooking();
   });
@@ -123,9 +151,7 @@ test("Основной путь + гонка за слот: регистраци
   });
 
   await test.step("Гость: проверяет своё бронирование", async () => {
-    await expect(
-      guestBooking.upcomingBookingCard(host.name)
-    ).toBeVisible();
+    await expect(guestBooking.upcomingBookingCard(host.name)).toBeVisible();
   });
 
   await test.step("Хост: открывает «Мои встречи»", async () => {
@@ -133,8 +159,6 @@ test("Основной путь + гонка за слот: регистраци
   });
 
   await test.step("Хост: проверяет бронирование от гостя", async () => {
-    await expect(
-      hostBooking.upcomingBookingCard(guest.name)
-    ).toBeVisible();
+    await expect(hostBooking.upcomingBookingCard(guest.name)).toBeVisible();
   });
 });

@@ -1,6 +1,10 @@
 import { type Browser, type BrowserContext } from "@playwright/test";
 
-import { makeSearchData, registerUserViaApi } from "./user";
+import {
+  getTomorrowDate,
+  makeSearchData,
+  registerUserViaApi,
+} from "./user";
 
 import { BookingPage } from "../pages/booking-page";
 import { ProfilePage } from "../pages/profile-page";
@@ -24,6 +28,7 @@ export async function prepareSearchFlow(
   const guestPage = await guestContext.newPage();
 
   const hostProfile = new ProfilePage(hostPage);
+  const guestProfile = new ProfilePage(guestPage);
   const hostBooking = new BookingPage(hostPage);
   const guestBooking = new BookingPage(guestPage);
 
@@ -31,11 +36,13 @@ export async function prepareSearchFlow(
     skill,
     slotDate,
     host,
+    guest,
     hostContext,
     guestContext,
     hostPage,
     guestPage,
     hostProfile,
+    guestProfile,
     hostBooking,
     guestBooking,
   };
