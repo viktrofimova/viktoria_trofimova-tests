@@ -31,6 +31,12 @@ export class BookingPage {
 
   freeSlot = () => this.slotCard();
 
+  slotCardByTime = (time: string) =>
+    this.page.locator("[data-slot-id]").filter({ hasText: time });
+  
+  slotDeleteButton = (time: string) =>
+    this.slotCardByTime(time).getByRole("button", { name: "Удалить" });
+
   bookingDay = (date: string) =>
     this.page.locator(`button[data-date="${date}"]`);
 
@@ -51,6 +57,9 @@ export class BookingPage {
       /забронировали|занят|выбери другой/i,
     );
 
+  bookingGuestError = () =>
+    this.bookingDialog().getByRole("alert");
+
   upcomingSection = () =>
     this.page.locator('[data-testid="upcoming-meetings"]');
 
@@ -68,22 +77,27 @@ export class BookingPage {
     this.upcomingBookingCard(name).getByRole("button", {
       name: "Отменить",
     });
-    
-    pastBookingsSection = () =>
-      this.page
-        .locator("section")
-        .filter({ hasText: "Прошедшие и отменённые" });
-    
-    pastBookingCard = (name: string) =>
-      this.pastBookingsSection()
-        .locator("[data-booking-id]")
-        .filter({ hasText: name });
+
+  pastBookingsSection = () =>
+    this.page
+      .locator("section")
+      .filter({ hasText: "Прошедшие и отменённые" });
+
+  pastBookingCard = (name: string) =>
+    this.pastBookingsSection()
+      .locator("[data-booking-id]")
+      .filter({ hasText: name });
 
   async addSlot(date: string, time: string) {
     await this.slotDateInput().fill(date);
     await this.slotTimeInput().fill(time);
     await this.slotAddSubmit().click();
   }
+
+  async deleteSlot(time: string) {
+    await this.slotDeleteButton(time).click();
+    await this.slotCardByTime(time).waitFor({ state: "hidden" });
+  } 
 
   async searchBySkill(skillTag: string) {
     await this.catalogFilterInput().fill(skillTag);
@@ -98,7 +112,7 @@ export class BookingPage {
     const dayButton = this.bookingDay(slotDate);
     const timeButton = this.anyTime();
     const deadline = Date.now() + 15_000;
-  
+
     for (;;) {
       try {
         await dayButton.click({ timeout: 5_000 });
@@ -121,7 +135,15 @@ export class BookingPage {
   }
 
   async cancelBooking(name: string) {
+    const cancelled = this.page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/pomidorqa/bookings") &&
+        response.request().method() === "POST",
+    );
+  
     await this.cancelBookingButton(name).click();
+    await cancelled;
+    await this.upcomingBookingCard(name).waitFor({ state: "hidden" });
   }
 
   async goToBookings() {

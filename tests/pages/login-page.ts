@@ -4,14 +4,15 @@ export class LoginPage {
   constructor(private readonly page: Page) {}
 
   emailInput = () => this.page.getByLabel("Email");
-
   passwordInput = () => this.page.getByLabel("Пароль");
-
   loginButton = () =>
     this.page.getByRole("button", { name: "Войти" });
-
   errorMessage = () =>
     this.page.getByText(/Неверный/);
+
+  async goto() {
+    await this.page.goto("/pomidorqa/auth/login");
+  }
 
   async login(email: string, password: string) {
     await this.emailInput().fill(email);
