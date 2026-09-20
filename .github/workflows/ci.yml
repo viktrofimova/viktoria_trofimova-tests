@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -33,7 +38,6 @@ jobs:
         run: npm test
 
       - name: Upload Playwright report
-        id: report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v5
         with:
@@ -41,12 +45,23 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+      - name: Upload Pages artifact
+        if: ${{ github.event_name == 'push' && !cancelled() }}
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: playwright-report
+
+      - name: Deploy Playwright report
+        id: deployment
+        if: ${{ github.event_name == 'push' && !cancelled() }}
+        uses: actions/deploy-pages@v5
+
       - name: Send Telegram report
         if: always()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          PLAYWRIGHT_REPORT_URL: ${{ steps.report.outputs.artifact-url }}
+          PLAYWRIGHT_REPORT_URL: ${{ steps.deployment.outputs.page_url }}
         run: node scripts/telegram-report.mjs
 
       - name: Fail CI if Playwright tests failed
