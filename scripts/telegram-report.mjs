@@ -25,10 +25,7 @@ function getTestStatus(test) {
     return "failed";
   }
 
-  if (
-    results.length > 0 &&
-    results.every((result) => result.status === "passed")
-  ) {
+  if (results.length > 0 && results.every((result) => result.status === "passed")) {
     return "passed";
   }
 
@@ -66,10 +63,11 @@ const repository = process.env.GITHUB_REPOSITORY || "unknown";
 const repositoryUrl = `${serverUrl}/${repository}`;
 const actionsUrl = `${repositoryUrl}/actions/runs/${process.env.GITHUB_RUN_ID || ""}`;
 const commitUrl = `${repositoryUrl}/commit/${process.env.GITHUB_SHA || ""}`;
+const reportUrl = process.env.PLAYWRIGHT_REPORT_URL;
 const runBy = process.env.GITHUB_ACTOR || "unknown";
 
 const message = [
-  `Всего пройдено: ${stats.total}`,
+  `Всего тестов: ${stats.total}`,
   "",
   `✅ Passed: ${stats.passed}`,
   `❌ Failed: ${stats.failed}`,
@@ -78,7 +76,8 @@ const message = [
   `Запуск: ${runBy}`,
   `<a href="${actionsUrl}">Actions на GitHub</a>`,
   `<a href="${commitUrl}">Коммит</a>`,
-].join("\n");
+  reportUrl ? `<a href="${reportUrl}">HTML-отчёт Playwright</a>` : "",
+].filter(Boolean).join("\n");
 
 console.log(message);
 
@@ -106,10 +105,7 @@ const response = await fetch(
 
 if (!response.ok) {
   const errorText = await response.text();
-
-  throw new Error(
-    `Telegram API вернул ошибку ${response.status}: ${errorText}`,
-  );
+  throw new Error(`Telegram API вернул ошибку ${response.status}: ${errorText}`);
 }
 
 console.log("Telegram report sent successfully");

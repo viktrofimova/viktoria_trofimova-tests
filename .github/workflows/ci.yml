@@ -32,11 +32,21 @@ jobs:
         continue-on-error: true
         run: npm test
 
+      - name: Upload Playwright report
+        id: report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
       - name: Send Telegram report
         if: always()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PLAYWRIGHT_REPORT_URL: ${{ steps.report.outputs.artifact-url }}
         run: node scripts/telegram-report.mjs
 
       - name: Fail CI if Playwright tests failed
