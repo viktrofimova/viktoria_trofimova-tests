@@ -69,15 +69,17 @@ const runBy = process.env.GITHUB_ACTOR || "unknown";
 const message = [
   `Всего тестов: ${stats.total}`,
   "",
+  "",
   `✅ Passed: ${stats.passed}`,
   `❌ Failed: ${stats.failed}`,
+  "",
   "",
   `<a href="${repositoryUrl}">Репозиторий</a>`,
   `Запуск: ${runBy}`,
   `<a href="${actionsUrl}">Actions на GitHub</a>`,
   `<a href="${commitUrl}">Коммит</a>`,
-  reportUrl ? `<a href="${reportUrl}">HTML-отчёт Playwright</a>` : "",
-].filter(Boolean).join("\n");
+  reportUrl ? `<a href="${reportUrl}">HTML-отчёт Playwright</a>` : null,
+].filter((line) => line !== null).join("\n");
 
 console.log(message);
 
